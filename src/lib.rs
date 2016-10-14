@@ -35,11 +35,11 @@ pub trait CommandPtraceSpawn {
     /// The child process will be stopped with a `SIGTRAP` calling `exec`
     /// to execute the specified command. You can continue it with
     /// `PTRACE_CONT`.
-    fn spawn_ptrace(self) -> Result<Child>;
+    fn spawn_ptrace(&mut self) -> Result<Child>;
 }
 
 impl CommandPtraceSpawn for Command {
-    fn spawn_ptrace(mut self) -> Result<Child> {
+    fn spawn_ptrace(&mut self) -> Result<Child> {
         let child = try!(self.before_exec(|| {
             // Opt-in to ptrace.
             try!(ptrace(PTRACE_TRACEME, 0, ptr::null_mut(), ptr::null_mut()));
