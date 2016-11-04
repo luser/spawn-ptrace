@@ -46,7 +46,6 @@ impl CommandPtraceSpawn for Command {
             Ok(())
         })
             .spawn());
-        println!("spawned child");
         // Ensure that the child is stopped in exec before returning.
         match waitpid(child.id() as i32, None) {
             Ok(WaitStatus::Stopped(_, Signal::SIGTRAP)) => Ok(child),
