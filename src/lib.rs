@@ -15,7 +15,6 @@
 //! # }
 //! ```
 #![cfg(unix)]
-#![feature(process_exec)]
 
 extern crate nix;
 
