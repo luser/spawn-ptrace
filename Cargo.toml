@@ -3,16 +3,9 @@ name = "spawn-ptrace"
 version = "0.1.1-pre"
 authors = ["Ted Mielczarek <ted@mielczarek.org>"]
 license = "MIT"
-build = "build.rs"
 description = "Spawn a process with ptrace enabled."
 homepage = "https://github.com/luser/spawn-ptrace"
 repository = "https://github.com/luser/spawn-ptrace"
 
 [dependencies]
 nix = "0.7.0"
-
-[build-dependencies]
-skeptic = "0.5"
-
-[dev-dependencies]
-skeptic = "0.5"

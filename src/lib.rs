@@ -8,7 +8,7 @@
 //! use std::process::Command;
 //!
 //! # fn foo() -> io::Result<()> {
-//! let child = try!(Command::new("/bin/ls").spawn_ptrace());
+//! let child = Command::new("/bin/ls").spawn_ptrace()?;
 //! // call `ptrace(PTRACE_CONT, child.id(), ...)` to continue execution
 //! // do other ptrace things here...
 //! # Ok(())
@@ -39,12 +39,11 @@ pub trait CommandPtraceSpawn {
 
 impl CommandPtraceSpawn for Command {
     fn spawn_ptrace(&mut self) -> Result<Child> {
-        let child = try!(self.before_exec(|| {
+        let child = self.before_exec(|| {
             // Opt-in to ptrace.
-            try!(ptrace(PTRACE_TRACEME, 0, ptr::null_mut(), ptr::null_mut()));
+            ptrace(PTRACE_TRACEME, 0, ptr::null_mut(), ptr::null_mut())?;
             Ok(())
-        })
-            .spawn());
+        }).spawn()?;
         // Ensure that the child is stopped in exec before returning.
         match waitpid(child.id() as i32, None) {
             Ok(WaitStatus::Stopped(_, Signal::SIGTRAP)) => Ok(child),
