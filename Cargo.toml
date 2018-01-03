@@ -1,6 +1,6 @@
 [package]
 name = "spawn-ptrace"
-version = "0.1.1-pre"
+version = "0.1.1"
 authors = ["Ted Mielczarek <ted@mielczarek.org>"]
 license = "MIT"
 description = "Spawn a process with ptrace enabled."
