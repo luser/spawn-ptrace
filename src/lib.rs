@@ -18,14 +18,13 @@
 
 extern crate nix;
 
-use nix::sys::ptrace::ptrace;
-use nix::sys::ptrace::ptrace::PTRACE_TRACEME;
+use nix::sys::ptrace;
 use nix::sys::signal::Signal;
 use nix::sys::wait::{waitpid, WaitStatus};
+use nix::unistd::Pid;
 use std::io::{self, Result};
 use std::os::unix::process::CommandExt;
-use std::process::{Command, Child};
-use std::ptr;
+use std::process::{Child, Command};
 
 /// A Unix-specific extension to `std::process::Command` to spawn a process with `ptrace` enabled.
 pub trait CommandPtraceSpawn {
@@ -39,15 +38,29 @@ pub trait CommandPtraceSpawn {
 
 impl CommandPtraceSpawn for Command {
     fn spawn_ptrace(&mut self) -> Result<Child> {
-        let child = self.before_exec(|| {
-            // Opt-in to ptrace.
-            ptrace(PTRACE_TRACEME, 0, ptr::null_mut(), ptr::null_mut())?;
-            Ok(())
-        }).spawn()?;
+        let child = unsafe {
+            self.pre_exec(|| {
+                // Opt-in to ptrace.
+                match ptrace::traceme() {
+                    Ok(()) => Ok(()),
+                    Err(e) => match e {
+                        nix::Error::Sys(e) => Err(io::Error::from_raw_os_error(e as i32)),
+                        _ => Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            "unknown PTRACE_TRACEME error",
+                        )),
+                    },
+                }
+            })
+            .spawn()?
+        };
         // Ensure that the child is stopped in exec before returning.
-        match waitpid(child.id() as i32, None) {
+        match waitpid(Some(Pid::from_raw(child.id() as i32)), None) {
             Ok(WaitStatus::Stopped(_, Signal::SIGTRAP)) => Ok(child),
-            _ => Err(io::Error::new(io::ErrorKind::Other, "Child state not correct"))
+            _ => Err(io::Error::new(
+                io::ErrorKind::Other,
+                "Child state not correct",
+            )),
         }
     }
 }
@@ -56,20 +69,16 @@ impl CommandPtraceSpawn for Command {
 mod tests {
     use super::*;
 
-    use nix::sys::ptrace::ptrace;
-    use nix::sys::ptrace::ptrace::PTRACE_CONT;
-    use nix::sys::wait::{waitpid, WaitStatus};
-
     use std::env;
     use std::path::PathBuf;
-    use std::process::Command;
-    use std::ptr;
 
     fn test_process_path() -> Option<PathBuf> {
-        env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|p| p.with_file_name("test")
-                                         .with_extension(env::consts::EXE_EXTENSION)))
+        env::current_exe().ok().and_then(|p| {
+            p.parent().map(|p| {
+                p.with_file_name("test")
+                    .with_extension(env::consts::EXE_EXTENSION)
+            })
+        })
     }
 
     #[test]
@@ -78,10 +87,9 @@ mod tests {
         let child = Command::new(&path)
             .spawn_ptrace()
             .expect("Error spawning test process");
-        let pid = child.id() as i32;
+        let pid = Pid::from_raw(child.id() as i32);
         // Let the child continue.
-        ptrace(PTRACE_CONT, pid, ptr::null_mut(), ptr::null_mut())
-            .expect("Error continuing child process");
+        ptrace::cont(pid, None).expect("Error continuing child process");
         // Wait for the child to exit.
         match waitpid(pid, None) {
             Ok(WaitStatus::Exited(_, code)) => assert_eq!(code, 0),
