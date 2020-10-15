@@ -8,4 +8,4 @@ homepage = "https://github.com/luser/spawn-ptrace"
 repository = "https://github.com/luser/spawn-ptrace"
 
 [dependencies]
-nix = "0.7.0"
+nix = "0.18"
