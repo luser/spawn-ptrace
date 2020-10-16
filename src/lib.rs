@@ -41,16 +41,10 @@ impl CommandPtraceSpawn for Command {
         let child = unsafe {
             self.pre_exec(|| {
                 // Opt-in to ptrace.
-                match ptrace::traceme() {
-                    Ok(()) => Ok(()),
-                    Err(e) => match e {
-                        nix::Error::Sys(e) => Err(io::Error::from_raw_os_error(e as i32)),
-                        _ => Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            "unknown PTRACE_TRACEME error",
-                        )),
-                    },
-                }
+                ptrace::traceme().map_err(|e| match e {
+                    nix::Error::Sys(e) => io::Error::from_raw_os_error(e as i32),
+                    _ => io::Error::new(io::ErrorKind::Other, "unknown PTRACE_TRACEME error"),
+                })
             })
             .spawn()?
         };
