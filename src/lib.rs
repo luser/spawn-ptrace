@@ -1,4 +1,10 @@
-//! Execute a child process with ptrace enabled.
+//! This crate allows you to spawn a child process with [`ptrace`] enabled.
+//! It provides a single trait—[`CommandPtraceSpawn`]—that is implemented for
+//! `std::process::Command`, giving you access to a [`spawn_ptrace`] method.
+//!
+//! Processes spawned this way will be stopped with `SIGTRAP` from their
+//! `exec`, so you can perform any early intervention you require prior to the
+//! process running any code and then use `PTRACE_CONT` to resume its execution.
 //!
 //! # Examples
 //!
@@ -14,9 +20,14 @@
 //! # Ok(())
 //! # }
 //! ```
+//!
+//! [`ptrace`]: https://man7.org/linux/man-pages/man2/ptrace.2.html
+//! [`CommandPtraceSpawn`]: trait.CommandPtraceSpawn.html
+//! [`spawn_ptrace`]: trait.CommandPtraceSpawn.html#tymethod.spawn_ptrace
 #![cfg(unix)]
 
-extern crate nix;
+#[cfg(doctest)]
+doc_comment::doctest!("../README.md");
 
 use nix::sys::ptrace;
 use nix::sys::signal::Signal;
@@ -27,6 +38,8 @@ use std::os::unix::process::CommandExt;
 use std::process::{Child, Command};
 
 /// A Unix-specific extension to `std::process::Command` to spawn a process with `ptrace` enabled.
+///
+/// See [the crate-level documentation](index.html) for an example.
 pub trait CommandPtraceSpawn {
     /// Executes the command as a child process, also enabling ptrace on it.
     ///
