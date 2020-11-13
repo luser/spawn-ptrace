@@ -9,7 +9,7 @@ repository = "https://github.com/luser/spawn-ptrace"
 edition = "2018"
 
 [dependencies]
-nix = "0.18"
+nix = "0.19"
 
 [dev-dependencies]
 doc-comment = "0.3.3"
